@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda FakeStore</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Menú de navegación -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">Tienda FakeStore</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="displayProducts()">Listar Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#addProductModal">Agregar
+                            Producto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Título de la página -->
+    <h1 class="text-center">Listar Productos</h1>
+
+    <!-- Contenedor de la cuadrícula de productos -->
+    <div class="container mt-3">
+        <div class="row row-cols-1 row-cols-md-5 g-4" id="productGrid">
+            <!-- Los productos se mostrarán aquí -->
+        </div>
+    </div>
+
+    <!-- Modal para actualizar producto -->
+    <div class="modal fade" id="updateProductModal" tabindex="-1" aria-labelledby="updateProductModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateProductModalLabel">Actualizar Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="updateProductForm">
+                        <!-- Agrega un campo oculto para el ID del producto -->
+                        <input type="hidden" id="updateProductId">
+                        <div class="mb-3">
+                            <label for="updateProductName" class="form-label">Nombre del Producto:</label>
+                            <input type="text" class="form-control" id="updateProductName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="updateProductPrice" class="form-label">Precio del Producto:</label>
+                            <input type="number" class="form-control" id="updateProductPrice" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="updateProductCategory" class="form-label">Categoría del Producto:</label>
+                            <input type="text" class="form-control" id="updateProductCategory" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="updateProductDescription" class="form-label">Descripción del Producto:</label>
+                            <textarea class="form-control" id="updateProductDescription" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Actualizar Producto</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="alert alert-success" role="alert" id="successMessage" style="display: none;">
+        Producto actualizado con éxito.
+    </div>
+    <div class="alert alert-danger" role="alert" id="errorMessage" style="display: none;">
+        Error al actualizar el producto.
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <script>
+        const apiUrl = 'https://fakestoreapi.com/products';
+
+        async function getProducts() {
+            const response = await fetch(apiUrl);
+            const products = await response.json();
+            return products;
+        }
+
+        async function getProductById(productId) {
+            const response = await fetch(`${apiUrl}/${productId}`);
+            const product = await response.json();
+            return product;
+        }
+
+        async function displayProducts() {
+            const productGrid = document.getElementById('productGrid');
+            const products = await getProducts();
+
+            productGrid.innerHTML = '';
+
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.classList.add('col', 'product-card');
+
+                productCard.innerHTML = `
+        <div class="card h-100">
+          <img src="${product.image}" class="card-img-top" alt="${product.title}">
+          <div class="card-body">
+            <h5 class="card-title">${product.title}</h5>
+            <p class="card-text">${product.category}</p>
+            <p class="card-text">${product.description}</p>
+            <p class="card-text">Precio: $${product.price}</p>
+            <button class="btn btn-primary" onclick="openUpdateModal(${product.id})">Actualizar</button>
+            <button class="btn btn-danger" onclick="deleteProduct(${product.id})">Eliminar</button>
+          </div>
+        </div>
+      `;
+
+                productGrid.appendChild(productCard);
+            });
+        }
+
+        async function openUpdateModal(productId) {
+            const product = await getProductById(productId);
+
+            document.getElementById('updateProductId').value = productId;
+            document.getElementById('updateProductName').value = product.title;
+            document.getElementById('updateProductPrice').value = product.price;
+            document.getElementById('updateProductCategory').value = product.category;
+            document.getElementById('updateProductDescription').value = product.description;
+
+            const updateProductModal = new bootstrap.Modal(document.getElementById('updateProductModal'));
+            updateProductModal.show();
+        }
+
+        document.getElementById('updateProductForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const productId = document.getElementById('updateProductId').value;
+            const productName = document.getElementById('updateProductName').value;
+            const productPrice = document.getElementById('updateProductPrice').value;
+            const productCategory = document.getElementById('updateProductCategory').value;
+            const productDescription = document.getElementById('updateProductDescription').value;
+
+            // Usar el método PUT para actualizar el producto
+            const putResponse = await fetch(`${apiUrl}/${productId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: productName,
+                    price: parseFloat(productPrice),
+                    category: productCategory,
+                    description: productDescription,
+                }),
+            });
+
+            // Usar el método PATCH para actualizar el producto
+            const patchResponse = await fetch(`${apiUrl}/${productId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: productName,
+                    price: parseFloat(productPrice),
+                    description: productDescription,
+                }),
+            });
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            if (putResponse.ok && patchResponse.ok) {
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+                console.log('Producto actualizado con éxito');
+                const updatedProduct = await getProductById(productId);
+                console.log('Datos actualizados:', updatedProduct);
+                // Actualizar la lista de productos después de la actualización
+                displayProducts();
+                // Cerrar el modal
+                const updateProductModal = new bootstrap.Modal(document.getElementById(
+                    'updateProductModal'));
+                updateProductModal.hide();
+            } else {
+                console.error('Error al actualizar el producto');
+            }
+        });
+
+        // Función para eliminar un producto
+        async function deleteProduct(productId) {
+            const response = await fetch(`${apiUrl}/${productId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                console.log(`Producto con ID ${productId} eliminado con éxito`);
+                displayProducts();
+            } else {
+                console.error(`Error al eliminar el producto con ID ${productId}`);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
